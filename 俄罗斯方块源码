@@ -1,0 +1,723 @@
+#include<graphics.h>
+#include<conio.h>
+#include<iostream>
+#include<ctime>
+#include<vector>
+#include<algorithm>
+#include<fstream>
+
+#include <tchar.h>
+#include <windows.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+using namespace std;
+
+//定义游戏常量
+constexpr int blockSize = 30;//方块大小
+constexpr int rows = 20;//游戏区域行数
+constexpr int cols = 10;//游戏区域列数
+constexpr int winWidth = cols * blockSize + 200;//窗口宽度
+constexpr int winHeight = rows * blockSize;//窗口高度
+
+enum class blockType { I, J, L, O, S, T, Z };
+
+// 加载背景图片
+IMAGE bgImage;
+void loadBackground()
+{
+    loadimage(&bgImage, _T("./test1st.jpg"), winWidth, winHeight);
+}
+
+//方块形状结构体，坐标，颜色，形状
+struct blockShape
+{
+    vector<vector<int>>shape;//判断是否有方块
+    int x = 0;//方块在游戏区域中x坐标
+    int y = 0;//方块在游戏区域中y坐标
+    COLORREF color = RGB(0, 0, 0);
+};
+
+//获取方块形状和颜色
+static blockShape getblock(blockType type)
+{
+    blockShape block;//定义结构体
+
+    switch (type)
+    {
+    case blockType::I:
+        block.shape = { {1,1,1,1} };//I型方块
+        block.color = RGB(0, 255, 255);
+        break;
+    case blockType::J:
+        block.shape = { {1,0,0} ,{ 1,1,1 } };//J型方块
+        block.color = RGB(0, 0, 255);
+        break;
+    case blockType::L:
+        block.shape = { {0,0,1} ,{ 1,1,1 } };//L型方块
+        block.color = RGB(255, 165, 0);
+        break;
+    case blockType::O:
+        block.shape = { {1,1} ,{ 1,1 } };//正方型方块
+        block.color = RGB(255, 255, 0);
+        break;
+    case blockType::S:
+        block.shape = { {0,1,1} ,{ 1,1,0 } };//S型方块
+        block.color = RGB(0, 255, 0);
+        break;
+    case blockType::Z:
+        block.shape = { {1,1,0} ,{ 0,1,1 } };//Z型方块
+        block.color = RGB(255, 0, 0);
+        break;
+    case blockType::T:
+        block.shape = { {0,1,0} ,{ 1,1,1 } };//T型方块
+        block.color = RGB(128, 0, 128);
+        break;
+    }
+
+    block.x = cols / 2 - static_cast<int>(block.shape[0].size()) / 2;
+    block.y = 0;
+
+    return block;
+}
+
+//游戏类
+class Game
+{
+private:
+    vector<vector<int>>board;//游戏板，二维数组表示，0表示空，1表示有方块
+    blockShape current;//正在下落方块
+    blockShape next;//即将出现方块
+    int score = 0;//当前得分
+    bool gameOver = false;//游戏是否结束
+    bool gameStarted = false;//游戏是否开始
+    int speedLevel = 1;//游戏速度等级
+    int linesCleared = 0;//已消除行数
+    int highScore = 0;//记录最高成绩
+
+    // 初始化所有成员变量
+    enum ButtonState { NORMAL, HOVER, PRESSED };
+
+    int readHighScore()
+    {
+        ifstream inFile("highscore.dat", ios::binary);
+        if (inFile)
+        {
+            int score = 0;// 初始化变量
+            inFile.read(reinterpret_cast<char*>(&score), sizeof(score));
+            inFile.close();
+            return score;
+        }
+        return 0;
+    }
+
+    void writeHighScore(int newScore)
+    {
+        ofstream outFile("highscore.dat", ios::binary);
+        if (outFile)
+        {
+            outFile.write(reinterpret_cast<const char*>(&newScore), sizeof(newScore));
+            outFile.close();
+        }
+    }
+
+    void drawButton(int x, int y, int width, int height, const TCHAR* text, ButtonState state)
+    {
+        COLORREF btnColor, textColor = RGB(255, 255, 255);
+        switch (state)
+        {
+        case NORMAL: btnColor = RGB(255, 165, 0); break;
+        case HOVER: btnColor = RGB(255, 215, 0); break;
+        case PRESSED: btnColor = RGB(255, 140, 0); break;
+        }
+
+        setfillcolor(btnColor);
+        solidroundrect(x, y, x + width, y + height, 10, 10);
+
+        setlinecolor(RGB(139, 69, 19));
+        setlinestyle(PS_SOLID, 2);
+        roundrect(x, y, x + width, y + height, 10, 10);
+
+        LOGFONT f;
+        gettextstyle(&f);
+        f.lfHeight = 28;
+        f.lfWeight = FW_BOLD;
+        _tcscpy_s(f.lfFaceName, _T("微软雅黑"));
+        settextstyle(&f);
+        settextcolor(textColor);
+        setbkmode(TRANSPARENT);
+
+        int textWidth = textwidth(text);
+        outtextxy(x + (width - textWidth) / 2, y + (height - 28) / 2, text);
+    }
+
+    bool isMouseInButton(int x, int y, int width, int height, int mouseX, int mouseY)
+    {
+        return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
+    }
+
+public:
+    //构造函数
+    Game()
+    {
+        board.resize(rows, vector<int>(cols, 0));// 初始化游戏板（全0）
+        srand(static_cast<unsigned>(time(nullptr)));// 设置随机种子
+        current = getblock(static_cast<blockType>(rand() % 7));// 随机生成当前方块
+        next = getblock(static_cast<blockType>(rand() % 7)); // 随机生成下一个方块
+        highScore = readHighScore();
+    }
+
+    // 绘制按钮
+    void startMenu()
+    {
+        ButtonState btnState = NORMAL;
+        bool btnPressed = false;
+        int buttonWidth = 200;
+        int buttonHeight = 60;
+        int buttonX = (winWidth - buttonWidth) / 2;
+        int buttonY = winHeight / 2;
+
+        while (!gameStarted)
+        {
+            // 处理所有输入消息
+            ExMessage msg;
+            while (peekmessage(&msg, EM_MOUSE | EM_KEY))
+            {
+                if (msg.message == WM_MOUSEMOVE)
+                {
+                    btnState = isMouseInButton(buttonX, buttonY, buttonWidth, buttonHeight,
+                        msg.x, msg.y) ? HOVER : NORMAL;
+                }
+                else if (msg.message == WM_LBUTTONDOWN)
+                {
+                    if (isMouseInButton(buttonX, buttonY, buttonWidth, buttonHeight, msg.x, msg.y))
+                    {
+                        btnState = PRESSED;
+                        btnPressed = true;
+                    }
+                }
+                else if (msg.message == WM_LBUTTONUP && btnPressed)
+                {
+                    if (isMouseInButton(buttonX, buttonY, buttonWidth, buttonHeight, msg.x, msg.y))
+                    {
+                        gameStarted = true;
+                        return;
+                    }
+                    btnPressed = false;
+                }
+                else if (msg.message == WM_KEYDOWN && msg.vkcode == VK_RETURN)
+                {
+                    gameStarted = true;
+                    return;
+                }
+            }
+
+            // 绘制界面
+            cleardevice();
+            putimage(0, 0, &bgImage);
+
+            // 绘制标题
+            LOGFONT f;
+            gettextstyle(&f);
+            f.lfHeight = 48;
+            f.lfWeight = FW_BOLD;
+            _tcscpy_s(f.lfFaceName, _T("华文琥珀"));
+            settextstyle(&f);
+            setbkmode(TRANSPARENT);
+            settextcolor(RGB(237, 28, 36));
+
+            int textWidth = textwidth(_T("俄罗斯方块"));
+            outtextxy((winWidth - textWidth) / 2, winHeight / 2 - 120, _T("俄罗斯方块"));
+
+            // 绘制按钮
+            drawButton(buttonX, buttonY, buttonWidth, buttonHeight, _T("开始游戏"), btnState);
+
+            FlushBatchDraw();
+            Sleep(10);
+        }
+    }
+
+    //绘制游戏
+    void draw()
+    {
+        cleardevice();
+        putimage(0, 0, &bgImage);// 绘制背景图片
+
+        //绘制游戏区域边框
+        setlinecolor(WHITE);
+        rectangle(0, 0, cols * blockSize, rows * blockSize);
+
+        //绘制下落后固定的方块
+        for (int y = 0; y < rows; y++)
+        {
+            for (int x = 0; x < cols; x++)
+            {
+                if (board[y][x] == 1)
+                {
+                    setfillcolor(HSVtoRGB(static_cast<float>((x + y) * 10 % 360), 0.7f, 0.8f));
+
+                    fillrectangle(x * blockSize, y * blockSize, (x + 1) * blockSize, (y + 1) * blockSize);
+                }
+            }
+        }
+
+        //绘制当前方块
+        drawBlock(current);
+
+        //绘制信息面板
+        drawInfoPanel();
+
+        //游戏结束提示
+        if (gameOver)
+        {
+            setfillcolor(RGB(245, 222, 170));// 小新黄
+            solidrectangle(winWidth / 2 - 150, rows * blockSize / 2 - 60, winWidth / 2 + 150, rows * blockSize / 2 + 60);
+
+            LOGFONT f;
+            gettextstyle(&f);
+            f.lfHeight = 36;
+            f.lfQuality = ANTIALIASED_QUALITY;
+            _tcscpy_s(f.lfFaceName, _T("华文行楷"));
+            settextstyle(&f);
+            settextcolor(RGB(237, 28, 36));// 小新红
+
+            int textWidth = textwidth(_T("游戏结束！"));
+            outtextxy((winWidth - textWidth) / 2, rows * blockSize / 2 - 30, _T("游戏结束！"));
+
+            f.lfHeight = 24;
+            settextstyle(&f);
+            settextcolor(RGB(0, 160, 80));// 小新绿
+            textWidth = textwidth(_T("按R键重新开始"));
+            outtextxy((winWidth - textWidth) / 2, rows * blockSize / 2 + 20, _T("按R键重新开始"));
+        }
+    }
+
+    //绘制信息面板
+    void drawInfoPanel()
+    {
+        // 背景改为浅蓝色
+        setfillcolor(RGB(220, 240, 255));// 浅蓝背景
+        solidrectangle(cols * blockSize, 0, winWidth, winHeight);
+
+        LOGFONT f;
+        gettextstyle(&f);
+        f.lfHeight = 24;
+        f.lfWeight = FW_BOLD;
+        _tcscpy_s(f.lfFaceName, _T("微软雅黑"));
+        settextstyle(&f);
+        setbkmode(TRANSPARENT);
+        settextcolor(RGB(30, 80, 160));// 深蓝色
+
+        //下一个方块预览
+        int textWidth = textwidth(_T("下一个："));
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 20, _T("下一个："));
+
+        //绘制下一个方块
+        for (int y = 0; y < static_cast<int>(next.shape.size()); y++)
+        {
+            for (int x = 0; x < static_cast<int>(next.shape[y].size()); x++)
+            {
+                if (next.shape[y][x])
+                {
+                    setfillcolor(next.color);
+                    fillrectangle(cols * blockSize + (200 - next.shape[y].size() * blockSize) / 2 + x * blockSize,
+                        60 + y * blockSize,
+                        cols * blockSize + (200 - next.shape[y].size() * blockSize) / 2 + (x + 1) * blockSize,
+                        60 + (y + 1) * blockSize);
+                }
+            }
+        }
+
+        //分数和等级信息
+        TCHAR infoText[100];
+        _stprintf_s(infoText, _T("分数: %d"), score);
+        textWidth = textwidth(infoText);
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 150, infoText);
+
+        _stprintf_s(infoText, _T("最高分: %d"), highScore);
+        textWidth = textwidth(infoText);
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 180, infoText);
+
+        _stprintf_s(infoText, _T("等级: %d"), speedLevel);
+        textWidth = textwidth(infoText);
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 210, infoText);
+
+        _stprintf_s(infoText, _T("消除行: %d"), linesCleared);
+        textWidth = textwidth(infoText);
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 240, infoText);
+
+        // 操作说明 
+        f.lfHeight = 20;
+        _tcscpy_s(f.lfFaceName, _T("楷体"));
+        settextstyle(&f);
+        settextcolor(RGB(0, 160, 80));// 小新绿
+
+        textWidth = textwidth(_T("操作说明:"));
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 290, _T("操作说明:"));
+
+        textWidth = textwidth(_T("方向键/WASD: 移动"));
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 320, _T("方向键/WASD: 移动"));
+
+        textWidth = textwidth(_T("空格: 硬降落"));
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 350, _T("空格: 硬降落"));
+
+        textWidth = textwidth(_T("P: 暂停"));
+        outtextxy(cols * blockSize + (200 - textWidth) / 2, 380, _T("P: 暂停"));
+    }
+
+    //绘制单个方块
+    void drawBlock(const blockShape& block)
+    {
+        setfillcolor(block.color);
+        for (int y = 0; y < static_cast<int>(block.shape.size()); y++)
+        {
+            for (int x = 0; x < static_cast<int>(block.shape[y].size()); x++)
+            {
+                if (block.shape[y][x])
+                {
+                    int px = (block.x + x) * blockSize;
+                    int py = (block.y + y) * blockSize;
+                    fillrectangle(px, py, px + blockSize, py + blockSize);
+
+                    //绘制方块边框
+                    setlinecolor(WHITE);
+                    rectangle(px, py, px + blockSize, py + blockSize);
+                }
+            }
+        }
+    }
+
+    //检查碰撞
+    bool checkCollision(const blockShape& block)
+    {
+        for (int y = 0; y < static_cast<int>(block.shape.size()); y++)
+        {
+            for (int x = 0; x < static_cast<int>(block.shape[y].size()); x++)
+            {
+                if (block.shape[y][x])
+                {
+                    int boardX = block.x + x;
+                    int boardY = block.y + y;
+
+                    if (boardX < 0 || boardX >= cols || boardY < 0 || boardY >= rows)
+                    {
+                        return true;
+                    }
+
+                    if (boardY >= 0 && board[boardY][boardX] == 1)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    //旋转方块
+    void rotate()
+    {
+        blockShape rotated = current;
+        //创建旋转后形状
+        rotated.shape.clear();
+        for (int x = 0; x < static_cast<int>(current.shape[0].size()); x++)
+        {
+            vector<int>newRow;
+            for (int y = static_cast<int>(current.shape.size()) - 1; y >= 0; y--)
+            {
+                newRow.push_back(current.shape[y][x]);
+            }
+            rotated.shape.push_back(newRow);
+        }
+
+        //检查旋转后是否碰撞
+        if (!checkCollision(rotated))
+        {
+            current = rotated;
+        }
+    }
+
+    //移动方块
+    void move(int dx, int dy)
+    {
+        blockShape moved = current;
+        moved.x += dx;
+        moved.y += dy;
+        if (!checkCollision(moved))
+        {
+            current = moved;
+        }
+        else if (dy == 1)
+        {
+            //无法下移，固定方块
+            fixBlock();
+        }
+    }
+
+    //固定当前方块到游戏板
+    void fixBlock()
+    {
+        for (int y = 0; y < static_cast<int>(current.shape.size()); y++)
+        {
+            for (int x = 0; x < static_cast<int>(current.shape[y].size()); x++)
+            {
+                if (current.shape[y][x])
+                {
+                    int boardX = current.x + x;
+                    int boardY = current.y + y;
+
+                    if (boardY < 0)
+                    {
+                        gameOver = true;
+                        return;
+                    }
+
+                    if (boardX >= 0 && boardX < cols && boardY >= 0 && boardY < rows)
+                    {
+                        board[boardY][boardX] = 1;
+                    }
+                }
+            }
+        }
+
+        //检查是否有完整的行
+        checkLines();
+
+        //生成新方块
+        current = next;
+        next = getblock(static_cast<blockType>(rand() % 7));
+
+        //检查新方块是否立即碰撞
+        if (checkCollision(current))
+        {
+            gameOver = true;
+            if (score > highScore)
+            {
+                highScore = score;
+                writeHighScore(highScore);
+                draw();
+
+                LOGFONT f;
+                gettextstyle(&f);
+                f.lfHeight = 50;
+                _tcscpy_s(f.lfFaceName, _T("楷体"));
+                settextstyle(&f);
+                settextcolor(WHITE);
+
+                int textWidth = textwidth(_T("恭喜打破最高分记录！"));
+                outtextxy((winWidth - textWidth) / 2, rows * blockSize / 2 - 60, _T("恭喜打破最高分记录！"));
+
+                FlushBatchDraw();
+                Sleep(2000);
+            }
+        }
+    }
+
+    //检查并消除完整的行
+    void checkLines()
+    {
+        int lineRemoved = 0;
+        for (int y = rows - 1; y >= 0; y--)
+        {
+            bool lineComplete = true;
+            for (int x = 0; x < cols; x++)
+            {
+                if (board[y][x] != 1)
+                {
+                    lineComplete = false;
+                    break;
+                }
+            }
+
+            if (lineComplete)
+            {
+                board.erase(board.begin() + y);
+                board.insert(board.begin(), vector<int>(cols, 0));
+                lineRemoved++;
+                y++;
+            }
+        }
+
+        if (lineRemoved > 0)
+        {
+            linesCleared += lineRemoved;
+            switch (lineRemoved)
+            {
+            case 1: score += 100; break;
+            case 2: score += 300; break;
+            case 3: score += 500; break;
+            case 4: score += 800; break;
+            }
+            speedLevel = linesCleared / 5 + 1;
+        }
+    }
+
+    //处理输入
+    void input()
+    {
+        ExMessage msg;
+        while (peekmessage(&msg, EX_KEY))
+        {
+            if (msg.message == WM_KEYDOWN)
+            {
+                int key = msg.vkcode;
+
+                if (gameOver && (key == 'R' || key == 'r'))
+                {
+                    *this = Game();
+                    return;
+                }
+
+                if (gameOver) continue;
+
+                switch (key)
+                {
+                case 'A': case 'a': case VK_LEFT:
+                    move(-1, 0);
+                    break;
+                case 'D': case 'd': case VK_RIGHT:
+                    move(1, 0);
+                    break;
+                case 'W': case 'w': case VK_UP:
+                    rotate();
+                    break;
+                case 'S': case 's': case VK_DOWN:
+                    move(0, 1);
+                    break;
+                case VK_SPACE:
+                    hardDrop();
+                    break;
+                case 'P': case 'p':
+                    pauseGame();
+                    break;
+                }
+            }
+        }
+    }
+
+    //硬降落
+    void hardDrop()
+    {
+        while (!checkCollision(current))
+        {
+            current.y++;
+        }
+        current.y--;
+        fixBlock();
+    }
+
+    //暂停游戏
+    void pauseGame()
+    {
+        // 背景改为小新黄色
+        setfillcolor(RGB(245, 222, 170));// 背景改为小新黄色
+        solidrectangle(winWidth / 2 - 150, rows * blockSize / 2 - 60, winWidth / 2 + 150, rows * blockSize / 2 + 60);
+
+        LOGFONT f;
+        gettextstyle(&f);
+        f.lfHeight = 36;
+        f.lfQuality = ANTIALIASED_QUALITY;
+        _tcscpy_s(f.lfFaceName, _T("华文行楷"));
+        settextstyle(&f);
+        settextcolor(RGB(237, 28, 36));// 小新红
+
+        int textWidth = textwidth(_T("游戏暂停"));
+        outtextxy((winWidth - textWidth) / 2, rows * blockSize / 2 - 30, _T("游戏暂停"));
+
+        f.lfHeight = 24;
+        settextstyle(&f);
+        settextcolor(RGB(0, 160, 80));// 小新绿
+        textWidth = textwidth(_T("按P键继续"));
+        outtextxy((winWidth - textWidth) / 2, rows * blockSize / 2 + 20, _T("按P键继续"));
+
+        FlushBatchDraw();
+
+        while (true) {
+            ExMessage msg;
+            if (peekmessage(&msg, EX_KEY) && msg.message == WM_KEYDOWN) {
+                if (msg.vkcode == 'P' || msg.vkcode == 'p') {
+                    break;
+                }
+            }
+            Sleep(100);
+        }
+    }
+
+    //更新游戏状态
+    void update()
+    {
+        static int counter = 0;
+        counter++;
+
+        int speed = max(5, 30 - speedLevel * 2);
+
+        if (counter % speed == 0 && !gameOver)
+        {
+            move(0, 1);
+        }
+    }
+
+    bool isGameOver() const { return gameOver; }
+    bool isGameStarted() const { return gameStarted; }
+};
+
+// 音乐播放函数
+static bool PlayBackgroundMusic()
+{
+    const TCHAR* musicPath = _T("bgm.wav");
+
+    TCHAR openCmd[256];
+    _stprintf_s(openCmd, _T("open ./bk.mp3 alias BGM"), musicPath);
+
+    MCIERROR error = mciSendString(openCmd, NULL, 0, NULL);
+    if (error != 0)
+    {
+        return false;
+    }
+
+    error = mciSendString(_T("play BGM repeat"), NULL, 0, NULL);
+    if (error != 0)
+    {
+        mciSendString(_T("close BGM"), NULL, 0, NULL);
+        return false;
+    }
+
+    return true;
+}
+
+int main()
+{
+    //初始化窗口
+    initgraph(winWidth, winHeight);
+    setbkcolor(RGB(10, 10, 30));
+    cleardevice();
+
+    // 加载背景图片
+    loadBackground();
+
+    // 尝试播放背景音乐
+    PlayBackgroundMusic();
+
+    BeginBatchDraw();
+
+    //创建游戏实例
+    Game game;
+
+    // 显示开始菜单
+    game.startMenu();
+
+    //游戏主循环
+    while (true)
+    {
+        game.input();
+        game.update();
+        game.draw();
+        FlushBatchDraw();
+        Sleep(20);
+    }
+
+    // 程序退出前关闭音乐
+    mciSendString(_T("close BGM"), NULL, 0, NULL);
+
+    closegraph();
+    return 0;
+}
