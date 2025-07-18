@@ -1,0 +1,74 @@
+#include<iostream>
+#include<cstring>
+using namespace std;
+
+class MyString
+{
+public:
+	//普通构造函数
+	MyString(const char* str = NULL)
+	{
+		if (str == NULL)
+		{
+			m_data = new char[1];
+			m_data[0] = '\0';
+		}
+		else
+		{
+			m_data = new char[strlen(str) + 1];
+			strcpy_s(m_data, strlen(str) + 1, str);
+		}
+	}
+	//拷贝构造函数
+	MyString(const MyString& other)
+	{
+		m_data = new char[strlen(other.m_data) + 1];
+		strcpy_s(m_data, strlen(other.m_data) + 1, other.m_data);
+	}
+	//析构函数
+	~MyString()
+	{
+		delete[] m_data;
+	}
+	//重新设置字符串
+	void set(const char* str)
+	{
+		delete[] m_data;
+		m_data = new char[strlen(str) + 1];
+		strcpy_s(m_data, strlen(str) + 1, str);
+	}
+	//在当前字符串后面追加字符串other
+	MyString& append(const MyString& other)
+	{
+		size_t len1 = strlen(m_data);
+		size_t len2 = strlen(other.m_data);
+		char* temp = m_data;
+		m_data = new char[len1+len2+1];
+		strcpy_s(m_data, len1 + 1, temp); 
+		strcat_s(m_data, len1 + len2 + 1, other.m_data);
+		delete[] temp;
+		return *this;
+
+	}
+	//输出字符串
+	void print()
+	{
+		cout << m_data << endl;
+	}
+private:
+	char* m_data;//保存字符串
+};
+
+int main() 
+{ 
+	MyString str1("Hello, "); // 测试普通构造函数
+	str1.print();
+
+	MyString str2(str1); // 测试复制构造函数
+	str2.set("World!");
+	str2.print();
+
+	str1.append(str2).print(); // 测试 append 函数，追加后的变长字符串存储在 str1 中
+	return 0;
+}
+	
