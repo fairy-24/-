@@ -1,0 +1,59 @@
+#include<graphics.h>
+#include<conio.h>
+
+int main()
+{
+	initgraph(320, 320);
+	fillrectangle(20, 20, 300, 300);
+	//填充颜色
+	setbkcolor(BROWN);
+	cleardevice();
+	//画线
+	setlinecolor(BLACK);
+	for (int i = 0; i <= 15; i++)
+	{
+		line(20 + i * 20, 20, 20 + i * 20, 300);
+	}
+	for (int j = 0; j <= 15; j++)
+	{
+		line(20, 20 + j * 20, 300, 20 + j * 20);
+	}
+	//设置线的样式
+	setlinestyle(PS_SOLID | PS_ENDCAP_FLAT, 3);
+	line(20, 20, 20, 300);
+	line(20, 20, 300, 20);
+	line(20, 300, 300, 300);
+	line(300, 20, 300, 300);
+
+	//画圆
+	setfillcolor(BLACK);
+	solidcircle(80, 80, 3);
+	solidcircle(80, 240, 3);
+	solidcircle(240, 80, 3);
+	solidcircle(240, 240, 3);
+	solidcircle(160, 160, 3);
+
+	//文字
+	settextcolor(BLACK);
+	for (int i = 1; i <= 9; i++)
+	{
+		TCHAR s[15];
+		_stprintf_s(s, _countof(s), _T("%d"), i);
+		outtextxy(8, 300 - (i - 1) * 20, s);
+	}
+	for (int i = 10; i <= 15; i++)
+	{
+		TCHAR s[15];
+		_stprintf_s(s, _countof(s), _T("%d"), i);
+		outtextxy(2, 300 - (i - 1) * 20, s);
+	}
+	for (int j = 1; j <= 15; j++)
+	{
+		char c = 'A';
+		outtextxy(20 + 20 * (j - 1), 303, c + j - 1);
+	}
+	system("pause");
+	closegraph();
+
+	return 0;
+}
