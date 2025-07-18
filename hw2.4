@@ -1,0 +1,148 @@
+#include <iostream>
+using namespace std;
+
+// 自定义最大公约数函数（欧几里得算法）
+int gcd(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+class Rational {
+private:
+    int n; // 分子
+    int m; // 分母
+
+    void simple(); // 约分函数
+
+public:
+    // 构造函数，默认为 1/1
+    Rational(int numerator = 1, int denominator = 1);
+
+    // 四则运算符重载
+    Rational operator+(const Rational& other) const;
+    Rational operator-(const Rational& other) const;
+    Rational operator*(const Rational& other) const;
+    Rational operator/(const Rational& other) const;
+
+    // 比较运算符重载
+    bool operator>(const Rational& other) const;
+    bool operator<=(const Rational& other) const;
+    bool operator==(const Rational& other) const;
+
+    // 输出运算符重载
+    friend ostream& operator<<(ostream& os, const Rational& r);
+};
+
+// 约分函数：将分数化简为最简形式，并保证分母为正
+void Rational::simple() {
+    if (m == 0) {
+        n = 0;
+        m = 1;
+        return;
+    }
+
+    int g = gcd(n, m); // 使用自定义的 gcd
+    n /= g;
+    m /= g;
+
+    // 保证分母为正
+    if (m < 0) {
+        n = -n;
+        m = -m;
+    }
+}
+
+// 构造函数实现
+Rational::Rational(int numerator, int denominator) : n(numerator), m(denominator) {
+    if (m == 0) {
+        cerr << "Error: Denominator cannot be zero. Setting to 1." << endl;
+        m = 1;
+    }
+    simple();
+}
+
+// 加法
+Rational Rational::operator+(const Rational& other) const {
+    int new_n = n * other.m + other.n * m;
+    int new_m = m * other.m;
+    return Rational(new_n, new_m);
+}
+
+// 减法
+Rational Rational::operator-(const Rational& other) const {
+    int new_n = n * other.m - other.n * m;
+    int new_m = m * other.m;
+    return Rational(new_n, new_m);
+}
+
+// 乘法
+Rational Rational::operator*(const Rational& other) const {
+    int new_n = n * other.n;
+    int new_m = m * other.m;
+    return Rational(new_n, new_m);
+}
+
+// 除法
+Rational Rational::operator/(const Rational& other) const {
+    if (other.n == 0) {
+        cerr << "Error: Division by zero. Returning 0." << endl;
+        return Rational(0, 1);
+    }
+    int new_n = n * other.m;
+    int new_m = m * other.n;
+    return Rational(new_n, new_m);
+}
+
+// 大于
+bool Rational::operator>(const Rational& other) const {
+    return n * other.m > other.n * m;
+}
+
+// 小于等于
+bool Rational::operator<=(const Rational& other) const {
+    return n * other.m <= other.n * m;
+}
+
+// 相等
+bool Rational::operator==(const Rational& other) const {
+    return n * other.m == other.n * m;
+}
+
+// 流输出重载
+ostream& operator<<(ostream& os, const Rational& r) {
+    if (r.m == 1 || r.n % r.m == 0)
+        os << r.n / r.m; // 整数
+    else
+        os << r.n << "/" << r.m;
+    return os;
+}
+int main() {
+    Rational r1(3, 6);   // 自动约分为 1/2
+    Rational r2(2, -4);  // 自动约分为 -1/2
+    Rational r3(5, 1);   // 整数 5
+    Rational r4(0, 3);   // 自动设置为 0
+
+    cout << "r1 = " << r1 << endl;
+    cout << "r2 = " << r2 << endl;
+    cout << "r3 = " << r3 << endl;
+    cout << "r4 = " << r4 << endl << endl;
+
+    // 四则运算测试
+    cout << "r1 + r2 = " << r1 + r2 << endl;       // 0
+    cout << "r1 - r2 = " << r1 - r2 << endl;       // 1
+    cout << "r1 * r3 = " << r1 * r3 << endl;       // 5/2
+    cout << "r1 / r2 = " << r1 / r2 << endl;       // -1
+    cout << "r1 / 0 = ";
+    cout << r1 / r4 << endl << endl;               // Division by zero error
+
+    // 比较测试
+    cout << "r1 > r2 ? " << (r1 > r2 ? "Yes" : "No") << endl;     // Yes
+    cout << "r1 <= r2 ? " << (r1 <= r2 ? "Yes" : "No") << endl;   // No
+    cout << "r1 == 1/2 ? " << (r1 == Rational(1, 2) ? "Yes" : "No") << endl; // Yes
+
+    return 0;
+}
