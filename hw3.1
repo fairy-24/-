@@ -1,0 +1,36 @@
+#include < iostream >
+using namespace std;
+
+class Room                                    //  房间类
+{
+protected:
+	double length;                            //  房间的长度
+	double width;                             //  房间的宽度
+public:
+	/*Room() {};*/
+	Room(double l, double w) :length(l), width(w) {}  // 构造函数 
+};
+
+class ClassRoom:public Room
+{
+public:
+	double seat;//教室座位数
+
+	/*ClassRoom() {};*/
+	ClassRoom(double s, double l, double w):Room(l,w),seat(s){}
+
+	double calAverArea()
+	{
+		return (length*width)/seat;
+	}
+
+	void show()
+	{
+		cout << "创建房间：" << length << "米，" << width << "米，" << seat << "个座位" << endl;
+		cout << "长" << length << "米," << "宽" << width << "米，" << seat << "个座位，" << "平均面积" << calAverArea()<< "平米" << endl;
+	}
+};
+int main() {
+	ClassRoom cr(30, 12, 10);
+	cr.show();
+}
