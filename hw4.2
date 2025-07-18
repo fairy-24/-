@@ -1,0 +1,214 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <iomanip>
+
+using namespace std;
+
+// 基类：人员
+class Person {
+protected:
+    int id;
+    string name;
+    double salary;
+
+public:
+    Person(int id, const string& name) : id(id), name(name), salary(0) {}
+
+    virtual void calculateSalary() = 0; // 纯虚函数，计算工资
+    virtual void display() const = 0;   // 纯虚函数，显示信息
+
+    double getSalary() const {
+        return salary;
+    }
+
+    virtual ~Person() {} // 虚析构函数
+};
+
+// 经理类
+class Manager : public virtual Person { // 使用virtual关键字
+public:
+    Manager(int id, const string& name) : Person(id, name) {}
+
+    void calculateSalary() override {
+        salary = 8000; // 固定月薪8000元
+    }
+
+    void display() const override {
+        cout << setw(5) << id << setw(15) << name << setw(10) << "Manager" << setw(12) << salary << endl;
+    }
+};
+
+// 兼职技术人员类
+class PartTimeTechnician : public virtual Person { // 使用virtual关键字
+private:
+    int hoursWorked;
+
+public:
+    PartTimeTechnician(int id, const string& name, int hoursWorked)
+        : Person(id, name), hoursWorked(hoursWorked) {}
+
+    void calculateSalary() override {
+        salary = hoursWorked * 100; // 每小时100元
+    }
+
+    void display() const override {
+        cout << setw(5) << id << setw(15) << name << setw(10) << "Technician" << setw(12) << salary << endl;
+    }
+};
+
+// 销售员类
+class Salesman : public virtual Person { // 使用virtual关键字
+private:
+    double salesAmount;
+
+public:
+    Salesman(int id, const string& name, double salesAmount)
+        : Person(id, name), salesAmount(salesAmount) {}
+
+    void calculateSalary() override {
+        salary = salesAmount * 0.04; // 销售额的4%
+    }
+
+    void display() const override {
+        cout << setw(5) << id << setw(15) << name << setw(10) << "Salesman" << setw(12) << salary << endl;
+    }
+};
+
+// 销售经理类（多继承）
+class SalesManager : public Manager, public Salesman {
+private:
+    double departmentSales;
+
+public:
+    SalesManager(int id, const string& name, double departmentSales)
+        : Person(id, name), Manager(id, name), Salesman(id, name, 0), departmentSales(departmentSales) {}
+
+    void calculateSalary() override {
+        // 固定工资5000元 + 部门销售总额的5‰提成
+        Person::salary = 5000 + departmentSales * 0.005;
+    }
+
+    void display() const override {
+        cout << setw(5) << Person::id << setw(15) << Person::name << setw(10) << "SalesManager" << setw(12) << Person::salary << endl;
+    }
+};
+
+// 管理类
+class ManagementSystem {
+private:
+    vector<Person*> staffList;
+
+public:
+    ~ManagementSystem() {
+        for (auto person : staffList) {
+            delete person;
+        }
+    }
+
+    void addPerson(Person* person) {
+        staffList.push_back(person);
+    }
+
+    void calculateAllSalaries() {
+        for (auto person : staffList) {
+            person->calculateSalary();
+        }
+    }
+
+    void displayAllInformation() const {
+        cout << "\n==================== 工资单 ====================" << endl;
+        cout << setw(5) << "ID" << setw(15) << "Name" << setw(10) << "Position" << setw(12) << "Salary" << endl;
+        for (auto person : staffList) {
+            person->display();
+        }
+        
+        double totalSalary = 0;
+        for (auto person : staffList) {
+            totalSalary += person->getSalary();
+        }
+        
+        cout << "===============================================" << endl;
+        cout << "Total Salary: " << totalSalary << endl;
+        cout << "===============================================" << endl;
+    }
+};
+
+int main() {
+    ManagementSystem system;
+    int choice;
+    
+    do {
+        cout << "\n===== 4S店工资管理系统 =====" << endl;
+        cout << "1. 添加经理" << endl;
+        cout << "2. 添加兼职技术人员" << endl;
+        cout << "3. 添加销售员" << endl;
+        cout << "4. 添加销售经理" << endl;
+        cout << "5. 计算所有人工资并显示工资单" << endl;
+        cout << "6. 退出系统" << endl;
+        cout << "请选择操作: ";
+        cin >> choice;
+        
+        switch (choice) {
+            case 1: {
+                int id;
+                string name;
+                cout << "请输入经理的ID: ";
+                cin >> id;
+                cout << "请输入经理的姓名: ";
+                cin >> name;
+                system.addPerson(new Manager(id, name));
+                break;
+            }
+            case 2: {
+                int id, hoursWorked;
+                string name;
+                cout << "请输入兼职技术人员的ID: ";
+                cin >> id;
+                cout << "请输入兼职技术人员的姓名: ";
+                cin >> name;
+                cout << "请输入本月工作小时数: ";
+                cin >> hoursWorked;
+                system.addPerson(new PartTimeTechnician(id, name, hoursWorked));
+                break;
+            }
+            case 3: {
+                int id;
+                string name;
+                double salesAmount;
+                cout << "请输入销售员的ID: ";
+                cin >> id;
+                cout << "请输入销售员的姓名: ";
+                cin >> name;
+                cout << "请输入本月销售额: ";
+                cin >> salesAmount;
+                system.addPerson(new Salesman(id, name, salesAmount));
+                break;
+            }
+            case 4: {
+                int id;
+                string name;
+                double departmentSales;
+                cout << "请输入销售经理的ID: ";
+                cin >> id;
+                cout << "请输入销售经理的姓名: ";
+                cin >> name;
+                cout << "请输入所管辖部门本月销售总额: ";
+                cin >> departmentSales;
+                system.addPerson(new SalesManager(id, name, departmentSales));
+                break;
+            }
+            case 5:
+                system.calculateAllSalaries();
+                system.displayAllInformation();
+                break;
+            case 6:
+                cout << "感谢使用本系统！" << endl;
+                break;
+            default:
+                cout << "无效的选择，请重新输入！" << endl;
+        }
+    } while (choice != 6);
+    
+    return 0;
+}
