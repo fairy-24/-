@@ -1,0 +1,112 @@
+#include<graphics.h>
+#include<conio.h>
+#include<stdio.h>
+
+COLORREF fillcolor = RED;
+
+void drawSquare(int x, int y, int size)
+{
+	setfillcolor(fillcolor);
+	solidrectangle(x - size / 2, y - size / 2, x + size / 2, y + size / 2);
+}
+
+void drawCircle(int x, int y, int r)
+{
+	setfillcolor(fillcolor);
+	solidcircle(x, y, r);
+}
+
+int main()
+{
+	initgraph(600, 600);
+
+	setbkcolor(RGB(255, 192, 203));
+	cleardevice();
+
+	ExMessage msg;
+	bool running = true;
+
+	while (running)
+	{
+		//鼠标
+		while (peekmessage(&msg))
+		{
+			if (msg.message == WM_LBUTTONDOWN || msg.message == WM_RBUTTONDOWN)
+			{
+				int x = msg.x;
+				int y = msg.y;
+
+				// 检测是否按下 Ctrl 键
+				bool ctrlPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+
+				if (msg.message == WM_LBUTTONDOWN)
+				{
+					if (ctrlPressed)
+					{
+						drawSquare(x, y, 20);
+					}
+					else
+					{
+						drawSquare(x, y, 10);
+					}
+				}
+				else if (msg.message == WM_RBUTTONDOWN)
+				{
+					if (ctrlPressed)
+					{
+						drawCircle(x, y, 20);
+					}
+					else
+					{
+						drawCircle(x, y, 10);
+					}
+				}
+			}
+
+			//键盘
+			else if (msg.message == WM_KEYDOWN)
+			{
+				char key = msg.vkcode;
+				if (key == 'c' || key == 'C')
+				{
+					cleardevice();
+					//break;
+				}
+				else if (key == 'r' || key == 'R')
+				{
+					fillcolor = RED;
+					//break;
+				}
+				else if (key == 'g' || key == 'G')
+				{
+					fillcolor = GREEN;
+					//break;
+				}
+				else if (key == 'b' || key == 'B')
+				{
+					fillcolor = BLUE;
+					//break;
+				}
+				else if (key == 'w' || key == 'W')
+				{
+					fillcolor = WHITE;
+					//break;
+				}
+				else if (key == VK_ESCAPE)
+				{
+					running = false;
+					break;
+					//closegraph();
+					//return 0;
+				}
+			}
+
+		}
+
+	}
+
+	system("pause");
+	closegraph();
+	return 0;
+
+}
