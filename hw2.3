@@ -1,0 +1,133 @@
+#include <iostream>
+using namespace std;
+
+class Stack {
+private:
+	int* arr;// 动态数组，用于存储栈中的元素
+	const int capacity; // 栈的最大容量
+	int top; // 栈顶指针，指向栈顶元素的索引位置（空栈时为-1）
+	int sum; // 此栈中元素之和
+	static int total; // 静态变量，统计所有栈实例中元素的总和
+
+public:
+	// 构造函数：初始化栈的容量和栈顶指针，sum=0
+	Stack(int size) :capacity(size), top(-1), sum(0)
+	{
+		arr = new int[capacity];
+	}
+	// 复制构造函数，更新 total
+	Stack(const Stack& other):capacity(other.capacity), top(other.top), sum(other.sum)
+	{
+		arr = new int[capacity];
+		for (int i = 0; i < top; ++i)
+		{
+			arr[i] = other.arr[i];
+		}
+		total += sum;//更新total
+	}
+	// 析构函数：释放动态分配的内存，更新 total
+	~Stack()
+	{
+		delete[]arr;
+		total -= sum;
+	}
+
+	// 拷贝赋值操作符（Rule of Three 的一部分）
+	Stack& operator=(const Stack& other)
+	{
+		if (this == &other) return *this;
+
+		// 如果当前栈大小不够，重新分配内存
+		if (capacity != other.capacity)
+		{
+			delete[] arr;
+			arr = new int[other.capacity];
+		}
+
+		// 清除当前内容
+		top = other.top;
+		sum = other.sum;
+
+		for (int i = 0; i <= top; ++i)
+		{
+			arr[i] = other.arr[i];
+		}
+
+		return *this;
+	}
+
+	// 入栈操作：将元素压入栈顶，并更新 sum 和 total
+	bool push(int value)
+	{
+		if (isFull()) 
+			return false;
+		arr[++top] = value;
+		sum += value;
+		total += value;
+		return true;
+	}
+	// 出栈操作：移除栈顶元素，并更新 sum 和 total
+	bool pop()
+	{
+		if (isEmpty()) 
+			return false;
+		total -= arr[top];
+		sum -= arr[top--];
+		return true;
+	}
+	// 获取栈顶元素的值（不弹出）；若栈空则输出提示并返回-1
+	int peek() const
+	{
+		if (isEmpty()) {
+			cout << "Stack is empty!" << endl;
+			return -1;
+		}
+		return arr[top];
+	}
+	// 判断栈是否已满
+	bool isFull() const
+	{
+		return top == capacity - 1;
+	}
+	// 判断栈是否为空
+	bool isEmpty() const
+	{
+		return top == -1;
+	}
+	// 静态方法：获取所有栈中元素的总和
+	static int getTotal()
+	{
+		return total;
+	}
+};
+
+// 初始化静态成员变量
+int Stack::total = 0;
+
+
+// 测试主函数
+int main() {
+	Stack original(5);
+	original.push(10);
+	original.push(20);
+	original.push(30);
+	cout << "Original stack:" << endl;
+	cout << "Top element: " << original.peek() << endl; // 输出: 30
+	cout << "Total elements: " << Stack::getTotal() << endl; // 输出: 60
+
+	// 使用复制构造函数创建新栈
+	Stack copy(original);
+	cout << "\nCopied stack:" << endl;
+	cout << "Total elements: " << Stack::getTotal() << endl; // 输出:120 
+
+	// 修改复制的栈，不影响原栈
+	copy.pop();
+	copy.push(40);
+
+	cout << "\nAfter modifications:" << endl;
+	cout << "Original top: " << original.peek() << endl; // 输出: 30
+	cout << "Copy top: " << copy.peek() << endl; // 输出: 40
+	cout << "Total elements: " << Stack::getTotal() << endl; // 输出: 130
+
+	return 0;
+}
