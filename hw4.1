@@ -1,0 +1,192 @@
+#include<iostream>
+#include<cstring>
+#include<cmath>
+#include<vector>
+#include<algorithm>
+
+#define PI 3.14
+using namespace std;
+
+
+template<class T>
+void Swap(T& a, T& b)
+{
+	T temp = a;
+	a = b;
+	b = temp;
+}
+
+void sort(char* p, int length)
+{
+	for (int i = 0; i < length-1; i++)
+	{
+		for (int j = 0; j < length - 1 - i; j++)
+		{
+			if (p[j] > p[j + 1])
+			{
+				Swap(p[j], p[j + 1]);
+			}
+		}
+	}
+
+	for (int i = 0; i < length; i++)
+	{
+		cout << p[i] << ' ';
+	}
+	cout << endl;
+}
+
+//class Shape
+//{
+//public:
+//	int num;
+//	char name[20];
+//
+//public:
+//	Shape():num(0){}
+//	Shape(int n):num(n)
+//	{
+//		cin >> n;
+//	}
+//	Shape(const char* p) 
+//	{
+//		strncpy(name, p, strlen(p));
+//	}
+//	virtual ~Shape(){}
+//	double getArea()const
+//	{
+//		return 0.0;
+//	}
+//	void show(){}
+//
+//};
+
+class Shape
+{
+public:
+	Shape(){}
+	virtual ~Shape(){}
+	virtual double getArea()const = 0;
+	virtual void show()const = 0;
+};
+
+class Circle:public Shape
+{
+public:
+	double radius;
+	
+	Circle(){}
+	Circle(double r=0) :radius(r){}
+	double getArea()const
+	{
+		return PI * radius * radius*1.0;
+	}
+	void show()const
+	{
+		cout << "Circle: " << getArea() << endl;
+	}
+};
+
+class Rectangle :public Shape
+{
+public:
+	double side1;
+	double side2;
+
+	Rectangle() {}
+
+	Rectangle(double s1=0,double s2=0) :side1(s1),side2(s2){}
+
+	double getArea()const
+	{
+		return side1*side2* 1.0;
+	}
+	void show()const
+	{
+		cout << "Rectangle: " << getArea() << endl;
+	}
+
+};
+
+class Triangle :public Shape
+{
+public:
+	double side1;
+	double side2;
+	double side3;
+
+	Triangle() {}
+	Triangle(double s1=0, double s2=0,double s3=0) :side1(s1), side2(s2),side3(s3){}
+	double getArea()const
+	{
+		double p = (side1 + side2 + side3) / 2.0;
+		return sqrt(p * (p - side1) * (p - side2) * (p - side3));
+	}
+	void show()const
+	{
+		cout << "Triangle: " << getArea() << endl;
+	}
+};
+
+//比较函数
+bool compare(const Shape* a, const Shape* b)
+{
+	return a->getArea() > b->getArea();// 按面积从大到小排序
+}
+
+int main()
+{
+	vector<Shape*>shapes;
+	int n;
+	cout << "请输入几何体数量：";
+	cin >> n;
+
+	for (int i = 0; i < n; i++)
+	{
+		char type;
+		cin >> type;
+
+		if (type == 'C')
+		{
+			double r;
+			cin >> r;
+			shapes.push_back(new Circle(r));
+		}
+		else if (type == 'R')
+		{
+			double a, b;
+			cin >> a >> b;
+			shapes.push_back(new Rectangle(a, b));
+		}
+		else if (type == 'T')
+		{
+			double a, b, c;
+			cin >> a >> b >> c;
+			shapes.push_back(new Triangle(a, b, c));
+		}
+	}
+
+	//排序
+	/*
+	shapes.begin()：返回指向第一个元素的迭代器。
+	shapes.end()：返回指向最后一个元素之后位置的迭代器。
+	compare：是一个自定义比较函数，用于告诉std::sort 如何比较两个元素的大小。
+	*/
+	sort(shapes.begin(), shapes.end(), compare);
+	
+	// 输出
+	for (const Shape* const& shape : shapes)
+	{
+		shape->show();
+	}
+
+	// 清理内存
+	for (Shape*& shape : shapes)
+	{
+		delete shape;
+	}
+
+	return 0;
+
+
+}
