@@ -1,0 +1,181 @@
+#include <iostream>
+#include <string>
+using namespace std;
+
+// 定义默认动态数组起始容量
+const int DEFAULT_CAPACITY = 4;
+
+template <typename T>
+class Stack {
+private:
+    T* s;           // 存放栈元素的动态数组
+    int topIndex;   // 栈顶指针（下标）
+    int capacity;   // 当前数组容量
+
+public:
+    // 构造函数
+    Stack(int cap = DEFAULT_CAPACITY) {
+        if (cap <= 0) {
+            throw invalid_argument("Capacity must be positive.");
+        }
+        capacity = cap;
+        s = new T[capacity];
+        topIndex = -1;  // 表示栈为空
+    }
+
+    // 析构函数
+    ~Stack() {
+        delete[] s;
+    }
+
+    // 拷贝构造函数
+    Stack(const Stack& other) {
+        capacity = other.capacity;
+        topIndex = other.topIndex;
+        s = new T[capacity];
+        for (int i = 0; i <= topIndex; ++i) {
+            s[i] = other.s[i];
+        }
+    }
+
+    // 赋值运算符重载
+    Stack& operator=(const Stack& other) {
+        if (this != &other) {
+            delete[] s;
+            capacity = other.capacity;
+            topIndex = other.topIndex;
+            s = new T[capacity];
+            for (int i = 0; i <= topIndex; ++i) {
+                s[i] = other.s[i];
+            }
+        }
+        return *this;
+    }
+
+    // 入栈操作
+    void push(const T& value) {
+        if (topIndex == capacity - 1) {
+            resize(2 * capacity);  // 扩容为原来的两倍
+        }
+        s[++topIndex] = value;
+    }
+
+    // 出栈操作
+    T pop() {
+        if (stackempty()) {
+            throw runtime_error("Stack underflow: Cannot pop from an empty stack.");
+        }
+        T value = s[topIndex--];
+
+        // 如果当前元素数量小于容量的四分之一，缩小容量
+        if (topIndex > 0 && topIndex == capacity / 4) {
+            resize(capacity / 2);
+        }
+
+        return value;
+    }
+
+    // 判断栈是否为空
+    bool stackempty() const {
+        return topIndex == -1;
+    }
+
+    // 获取栈顶元素（不弹出）
+    T peek() const {
+        if (stackempty()) {
+            throw runtime_error("Stack is empty.");
+        }
+        return s[topIndex];
+    }
+
+    // 获取当前栈中元素个数
+    int size() const {
+        return topIndex + 1;
+    }
+
+    // 获取当前容量
+    int getCapacity() const {
+        return capacity;
+    }
+
+private:
+    // 动态调整数组大小
+    void resize(int newCapacity) {
+        T* newArray = new T[newCapacity];
+        for (int i = 0; i <= topIndex; ++i) {
+            newArray[i] = s[i];
+        }
+        delete[] s;
+        s = newArray;
+        capacity = newCapacity;
+    }
+};
+
+// 测试整数栈
+void testIntStack() {
+    cout << "Testing Stack<int>..." << endl;
+    Stack<int> intStack;
+
+    cout << "Pushing elements: 10, 20, 30" << endl;
+    intStack.push(10);
+    intStack.push(20);
+    intStack.push(30);
+
+    cout << "Top element: " << intStack.peek() << endl;
+    cout << "Stack size: " << intStack.size() << endl;
+    cout << "Is stack empty? " << (intStack.stackempty() ? "Yes" : "No") << endl;
+
+    cout << "Popping elements: ";
+    while (!intStack.stackempty()) {
+        cout << intStack.pop() << " ";
+    }
+    cout << endl;
+
+    try {
+        intStack.pop();  // 尝试从空栈中弹出
+    }
+    catch (const exception& e) {
+        cout << "Exception caught: " << e.what() << endl;
+    }
+
+    cout << endl;
+}
+
+// 测试字符串栈
+void testStringStack() {
+    cout << "Testing Stack<string>..." << endl;
+    Stack<string> stringStack;
+
+    cout << "Pushing elements: Hello, World, C++, Templates" << endl;
+    stringStack.push("Hello");
+    stringStack.push("World");
+    stringStack.push("C++");
+    stringStack.push("Templates");
+
+    cout << "Top element: " << stringStack.peek() << endl;
+    cout << "Stack size: " << stringStack.size() << endl;
+    cout << "Is stack empty? " << (stringStack.stackempty() ? "Yes" : "No") << endl;
+
+    cout << "Popping elements: ";
+    while (!stringStack.stackempty()) {
+        cout << stringStack.pop() << " ";
+    }
+    cout << endl;
+
+    try {
+        stringStack.pop();  // 尝试从空栈中弹出
+    }
+    catch (const exception& e) {
+        cout << "Exception caught: " << e.what() << endl;
+    }
+
+    cout << endl;
+}
+
+// 主函数
+int main() {
+    testIntStack();
+    testStringStack();
+
+    return 0;
+}
