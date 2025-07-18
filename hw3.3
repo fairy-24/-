@@ -1,0 +1,290 @@
+#include<iostream>
+#include<cstring>
+using namespace std;
+
+class myString
+{
+	friend ostream& operator<<(ostream& out, const myString& s);
+	friend istream& operator>>(istream in, myString& s);
+public:
+	char* str;
+	int length;
+
+	//默认构造
+	myString()
+	{
+		length = 0;
+		str = new char[length + 1];
+		str[0] = '\0';
+	}
+
+	//构造函数
+	myString(const char* s)
+	{
+		length = strlen(s);
+		str = new char[length + 1];
+		strcpy_s(str, length + 1, s);
+	}
+
+	//拷贝构造
+	myString(const myString& other)
+	{
+		length = strlen(other.str);
+		str = new char[length + 1];
+		strcpy_s(str, length + 1, other.str);
+	}
+
+	//赋值运算符重载
+	myString& operator=(const myString& other)
+	{
+		if (this == &other)
+		{
+			return *this;
+		}
+		delete[] str;
+		length = other.length;
+		str = new char[length + 1];
+		strcpy_s(str, length + 1, other.str);
+		return *this;
+	}
+
+	//析构函数
+	~myString()
+	{
+		delete[]str;
+	}
+
+	//输入字符串
+	void input()
+	{
+		char ch[2025];
+		cin.getline(ch , 2025);
+		//作用：从输入流中读取字符，直到遇到换行符 \n 或者读取了 n - 1 个字符为止。\
+		
+		delete[]str;
+		length = strlen(ch);
+		str = new char[length + 1];
+		strcpy_s(str, length + 1, ch);
+	}
+
+	//输出字符串
+	void output()
+	{
+		cout << str;
+	}
+
+	//获取字符串长度
+	int getLength()const
+	{
+		return length;
+	}
+	//字符串复制
+	void copy(const myString& source)
+	{
+		if (this == &source)
+		{
+			return ;
+		}
+		delete[]str;
+		length = source.length;
+		str = new char[length + 1];
+		strcpy_s(str, length + 1, source.str);
+	}
+
+	//字符串连接
+	myString operator+(const myString& other)const
+	{
+		char* temp = new char[length + other.length + 1];
+		strcpy_s(temp, length + 1, str);
+		strcat_s(temp, length + other.length + 1, other.str);//拼接
+		myString result = temp;
+		delete[]temp;
+		return result;
+
+	}
+
+	//字符串比较
+	bool operator==(const myString& other)const
+	{
+		return strcmp(str, other.str) == 0;
+	}
+
+
+};
+
+//输出流重载
+ostream& operator<<(ostream& out, const myString& s)
+{
+	out << s.str;
+	return out;
+}
+
+//输入流重载
+istream& operator>>(istream in, myString& s)
+{
+	char ch[2025];
+	in >> ws;//跳过前导空白
+	in.getline(ch, 2025);
+	s = myString(ch);
+	return in;
+}
+
+class EditString:public myString
+{
+private:
+	int position;
+public:
+	//构造函数
+	//默认构造
+	EditString():myString(),position(0){}
+
+	//有参构造
+	EditString(const char*s):myString(s),position(0){}
+
+	//设置当前位置
+	void setPosition(int pos)
+	{
+		if (pos >= 0 && pos <= length)
+		{
+			position = pos;
+		}
+		else
+		{
+			cout << "false" << endl;
+		}
+	}
+
+	//获取当前位置
+	int getPosition()const
+	{
+		return position;
+	}
+
+	//插入字符串
+	void insert(const myString& subStr)
+	{
+		int sublen =subStr.getLength() ;//获取插入子串长度
+		int newlen = length + sublen;//插入后新字符串总长度
+		char* newStr = new char[newlen + 1];
+
+		// 将原字符串前半部分（从开头到插入位置）复制到新字符串中
+		strncpy_s(newStr, newlen + 1, str, position);
+		newStr[position] = '\0';
+
+		// 将要插入的子串追加到新字符串中
+		strcat_s(newStr, newlen + 1, subStr.str);
+
+		// 将原字符串插入位置之后的部分也追加到新字符串中
+		strcat_s(newStr, newlen + 1, str + position);
+
+		// 释放旧字符串的内存，并将新字符串赋值给当前对象
+		delete[]str;
+		str = newStr;
+		length = newlen;// 新字符串长度
+		position += sublen;// 插入完成后，光标移动到插入内容的末尾
+
+	}
+
+	//替换position位置字符
+	void replaceChar(char ch)
+	{
+		if (position < length)
+		{
+			str[position] = ch;
+		}
+		else
+		{
+			cout << "false" << endl;
+		}
+	}
+
+	//删除后续字串
+	void deletePos(int dellen)//dellen删除字符长度
+	{
+		if (position >= length)
+		{
+			cout << "false" << endl;
+			return;
+		}
+
+		//调整删除长度
+		if (position + dellen > length)
+		{
+			dellen = length - position;//检查是否试图删除超出字符串末尾的部分,如果是，则将删除长度限制为从 position 到字符串结尾之间的字符数
+		}
+
+		//移动剩余部分覆盖被删除的内容
+		for (int i = position; i <= length - dellen; i++)
+		{
+			str[i] = str[i + dellen];
+		}
+
+		//最终长度
+		length -= dellen;
+
+	}
+
+	// 查找从当前位置开始是否包含某个子串
+	int findSubstring(const myString& subStr) const {
+		char* result = strstr(str + position, subStr.str);
+		//strstr(str + position, subStr.str)
+		//它的作用是在第一个参数指向的字符串中，查找第二个参数所表示的子串。
+		//str + position：表示从原字符串的 position 位置开始查找。
+		//subStr.str：要查找的子串
+		if (result)
+			return result - str;
+		else
+			return -1;
+	}
+
+	
+};
+
+// 测试函数
+void testMyString() {
+	myString s1("Hello ");
+	myString s2("World!");
+	myString s3 = s1 + s2;
+
+	cout << "s1: " << s1 << endl;
+	cout << "s2: " << s2 << endl;
+	cout << "s3 = s1 + s2: " << s3 << endl;
+}
+
+void testEditString() {
+	EditString es("Hello World");
+	cout << "Original string: " << es << endl;
+
+	cout << "replace content: ";
+	es.input();  
+	cout <<"输出"<< es << endl;
+
+	es.setPosition(5);  // 在 'o' 后面插入
+	es.insert(myString(", Beautiful"));
+	cout << "After insert: " << es << endl;
+
+	es.setPosition(7);
+	es.replaceChar('B');
+	cout << "After replace: " << es << endl;
+
+	es.setPosition(12);
+	es.deletePos(5);  // 删除 "utif"
+	cout << "After delete: " << es << endl;
+
+	int pos = es.findSubstring(myString("Worl"));
+	if (pos != -1)
+		cout << "Found  " << pos << endl;
+	else
+		cout << "Not found." << endl;
+}
+
+int main() 
+ {
+	cout << "Testing myString "<< endl;
+	testMyString();
+
+	cout << "\n Testing EditString " << endl;
+	testEditString();
+
+	return 0;
+}
