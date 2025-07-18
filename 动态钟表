@@ -1,0 +1,149 @@
+#include <graphics.h>
+#include <conio.h>
+#include <time.h>
+#include <math.h>
+#include <stdio.h>
+#include <windows.h>
+
+#define PI 3.1415926
+
+// 获取当前时间
+void getTime(int* hour, int* minute, int* second) {
+    SYSTEMTIME time;
+    GetLocalTime(&time);
+    *hour = time.wHour;
+    *minute = time.wMinute;
+    *second = time.wSecond;
+}
+
+// 绘制时钟
+void drawClock() {
+    int hour, minute, second;
+    getTime(&hour, &minute, &second);  // 获取当前时间
+
+    // 表盘
+    // 内表盘
+    setfillcolor(LIGHTGRAY);
+    fillcircle(400, 400, 390);
+    setlinecolor(BLACK);
+    setlinestyle(PS_SOLID | PS_ENDCAP_FLAT, 3);
+    circle(400, 400, 390);
+
+    // 外表盘
+    setfillcolor(WHITE);
+    setlinestyle(PS_SOLID | PS_ENDCAP_FLAT, 5);
+    circle(400, 400, 400);
+
+    // 时钟刻度
+    // 粗刻度
+    setlinecolor(BLACK);
+    setlinestyle(PS_SOLID | PS_ENDCAP_FLAT, 4);
+    for (int i = 0; i < 12; i++) {
+        double ang1 = (i * 30 * PI) / 180;
+        double x1 = 400 + 350 * cos(ang1);
+        double x2 = 400 + 370 * cos(ang1);
+        double y1 = 400 + 350 * sin(ang1);
+        double y2 = 400 + 370 * sin(ang1);
+        line(x1, y1, x2, y2);
+    }
+
+    // 细刻度
+    setlinecolor(BLACK);
+    setlinestyle(PS_SOLID | PS_ENDCAP_FLAT, 2);
+    for (int j = 0; j < 60; j++) {
+        if (j % 5 == 0) continue;  // 跳过已绘制的粗刻度
+        double ang2 = (j * 6 * PI) / 180;
+        double x3 = 400 + 355 * cos(ang2);
+        double x4 = 400 + 365 * cos(ang2);
+        double y3 = 400 + 355 * sin(ang2);
+        double y4 = 400 + 365 * sin(ang2);
+        line(x3, y3, x4, y4);
+    }
+
+    // 时钟数字
+    setbkmode(TRANSPARENT);
+    LOGFONT f;
+    gettextstyle(&f);
+    f.lfHeight = 48;
+    _tcscpy_s(f.lfFaceName, _T("黑体"));
+    f.lfQuality = ANTIALIASED_QUALITY;
+    settextstyle(&f);
+    settextcolor(BLACK);
+
+    for (int m = 0; m < 12; m++) {
+        double ang3 = ((m * 30 - 90) * PI) / 180;
+        double x = 400 + 320 * cos(ang3);
+        double y = 400 + 320 * sin(ang3);
+        TCHAR numStr[3];
+        _stprintf_s(numStr, _T("%d"), m == 0 ? 12 : m);
+        int th = textheight(numStr);
+        int tw = textwidth(numStr);
+        outtextxy(x - tw / 2.0, y - th / 2.0, numStr);
+    }
+
+    // 计算指针角度
+    double secondAngle = second * 6 * PI / 180;      // 每秒6度
+    double minuteAngle = (minute + second / 60.0) * 6 * PI / 180;  // 每分钟6度
+    double hourAngle = (hour % 12 + minute / 60.0) * 30 * PI / 180; // 每小时30度
+
+    // 计算指针末端位置
+    POINT secondEnd = {
+        400 + (int)(340 * sin(secondAngle)),
+        400 - (int)(340 * cos(secondAngle))
+    };
+    POINT minuteEnd = {
+        400 + (int)(300 * sin(minuteAngle)),
+        400 - (int)(300 * cos(minuteAngle))
+    };
+    POINT hourEnd = {
+        400 + (int)(240 * sin(hourAngle)),
+        400 - (int)(240 * cos(hourAngle))
+    };
+
+    // 绘制时针
+    setlinecolor(BLACK);
+    setlinestyle(PS_SOLID | PS_JOIN_ROUND, 10);
+    line(400, 400, hourEnd.x, hourEnd.y);
+
+    // 绘制分针
+    setlinecolor(BLACK);
+    setlinestyle(PS_SOLID | PS_JOIN_ROUND, 6);
+    line(400, 400, minuteEnd.x, minuteEnd.y);
+
+    // 绘制秒针
+    setlinecolor(RED);
+    setlinestyle(PS_SOLID | PS_JOIN_ROUND, 3);
+    line(400, 400, secondEnd.x, secondEnd.y);
+
+    // 钟心（覆盖指针交点）
+    setfillcolor(RED);
+    setlinecolor(BLACK);
+    setlinestyle(PS_SOLID | PS_ENDCAP_FLAT, 3);
+    fillcircle(400, 400, 15);
+    circle(400, 400, 15);
+}
+
+int main() {
+    initgraph(800, 800);
+    // 设置背景
+    setbkcolor(WHITE);
+    cleardevice();
+    // 重置原点（使Y轴向上为正）
+   /* setorigin(0, 800);
+    setaspectratio(1, -1);*/
+
+    // 开启双缓冲减少闪烁[4,8](@ref)
+    BeginBatchDraw();
+
+    // 主循环（每秒更新）[1,5](@ref)
+    while (!_kbhit()) {  // 按任意键退出
+        cleardevice();   // 清屏
+        drawClock();     // 重绘时钟
+        FlushBatchDraw(); // 刷新显示
+        Sleep(50);       // 短暂延迟（50ms更新约20帧）
+    }
+
+    EndBatchDraw();
+    closegraph();
+    return 0;
+}
