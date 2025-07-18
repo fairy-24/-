@@ -1,0 +1,156 @@
+#include<graphics.h>
+#include<conio.h>
+//#include<stdio.h>
+
+class Ball
+{
+private:
+	int posX, posY, radius;
+	int speedX, speedY;
+	//int hitCount; // 碰撞计数
+public:
+	Ball(int x, int y, int r, int sx, int sy) :posX(x), posY(y), radius(r), speedX(sx), speedY(sy) {}
+
+	void move()
+	{
+		posX += speedX;
+		posY += speedY;
+	}
+
+	//边界检验
+	void checkB(int width, int height)
+	{
+		if (posX <= radius || posX >= width + radius)
+		{
+			speedX = -speedX;//左右反弹
+		}
+		if (posY <= radius)
+		{
+			speedY = -speedY;//上边界反弹
+		}
+		//if (posY >= height - radius) {
+		//	speedY = -speedY; // 下边界反弹
+		//}
+	}
+
+	//挡板碰撞检验
+	bool checkP(int px, int py, int pw)//px,py为挡板左上角坐标，pw为挡板宽度
+	{
+		if ((posY + radius) >= py && (px + pw) >= posX && posX >= px)
+		{
+			speedY = -speedY;
+			//hitCount++; // 碰撞次数增加
+			return true;//碰到板子
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	//绘制小球
+	void drawBall()
+	{
+		setfillcolor(RGB(255, 192, 203));
+		fillcircle(posX, posY, radius);
+	}
+
+	int getY()
+	{
+		return posY;
+	}
+
+	int getX()
+	{
+		return posX;
+	}
+	/*int getHitCount() const {
+		return hitCount;
+	}*/
+};
+
+int main()
+{
+	initgraph(600, 600);
+
+	setbkcolor(RGB(173, 216, 230));
+	cleardevice();
+
+	BeginBatchDraw(); // 开始双缓冲绘图
+
+	bool running = true;
+	bool paused = false;
+	ExMessage msg;
+
+	//ball
+	int bx = 300, by = 300, br = 10, sx = 3, sy = 3;
+	Ball ball(bx, by, br, sx, sy);
+
+	//pad
+	int px = 200, py = 580, pw = 200;
+	setfillcolor(RGB(255, 192, 203));
+
+	while (true)
+	{
+		if (!paused)
+		{
+			cleardevice();
+			ball.move();
+			ball.checkB(600, 600);
+
+			if (ball.getY() >= (600 - br))
+			{
+				outtextxy(200, 300, _T("GAME OVER!"));
+				running = false;
+			}
+
+			if (ball.checkP(px, py, pw))
+			{
+				/*ball.move();*/
+			}
+
+			ball.drawBall();
+
+			setfillcolor(RGB(255, 192, 203));
+			solidrectangle(px, py, px + pw, py + 10);
+
+		}
+		//键盘
+		while (peekmessage(&msg))
+		{
+			if (msg.message == WM_KEYDOWN)
+			{
+				char key = msg.vkcode;
+				if (key == 'a' || key == 'A')
+				{
+					if (px > 0)
+					{
+						px -= 10;
+					}
+				}
+				else if (key == 'd' || key == 'D')
+				{
+					if (px < (600 - pw))
+					{
+						px += 10;
+					}
+				}
+				else if (key == 'p' || key == 'P')
+				{
+					paused = !paused;
+				}
+			}
+
+		}
+
+		EndBatchDraw();   // 所有绘图完成后一次性刷新到屏幕
+		BeginBatchDraw(); // 下一帧开始前重新启动双缓冲
+
+		Sleep(10); // 控制帧率
+	}
+
+	EndBatchDraw(); // 最后一次刷新确保结束画面正确显示
+	system("pause");
+	closegraph();
+	return 0;
+}
