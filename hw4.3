@@ -1,0 +1,199 @@
+#include <iostream>
+#include <vector>
+#include <string>
+using namespace std;
+
+// 前向声明
+class VenueList;
+
+// Venue(场馆) - 基类
+class Venue {
+protected:
+    string id;
+    string name;
+
+public:
+    Venue(string id, string name) : id(id), name(name) {}
+    virtual ~Venue() {}
+
+    string getId() const { return id; }
+    string getName() const { return name; }
+
+    virtual void display() const = 0; // 纯虚函数
+};
+
+// Site(场地) - Venue的派生类
+class Site : public Venue {
+private:
+    double area;
+
+public:
+    Site(string id, string name, double area)
+        : Venue(id, name), area(area) {
+    }
+
+    void display() const override {
+        cout << "场地 ID: " << id
+            << ", 名称: " << name
+            << ", 面积: " << area << "平方米" << endl;
+    }
+};
+
+// Gymnasium(运动馆) - Venue的派生类
+class Gymnasium : public Venue {
+private:
+    bool airCondition;
+
+public:
+    Gymnasium(string id, string name, bool airCondition)
+        : Venue(id, name), airCondition(airCondition) {
+    }
+
+    void display() const override {
+        cout << "运动馆 ID: " << id
+            << ", 名称: " << name
+            << ", 空调: " << (airCondition ? "有" : "无") << endl;
+    }
+};
+
+// Record(使用记录) - 使用场馆时产生的记录
+class Record {
+private:
+    string person;
+    Venue* venue;
+    string time;
+    string phone;
+
+public:
+    Record(string person, Venue* venue, string time, string phone)
+        : person(person), venue(venue), time(time), phone(phone) {
+    }
+
+    void display() const {
+        cout << "使用人: " << person
+            << ", 场馆: " << venue->getName()
+            << ", 时间: " << time
+            << ", 电话: " << phone << endl;
+    }
+
+    Venue* getVenue() const { return venue; }
+};
+
+// VenueList(场馆列表) - 管理场馆的容器类
+class VenueList {
+private:
+    vector<Venue*> venues;
+
+public:
+    VenueList() {}
+    ~VenueList() {
+        for (auto venue : venues) {
+            delete venue;
+        }
+    }
+
+    void add(Venue* venue) {
+        venues.push_back(venue);
+    }
+
+    bool remove(const string& id) {
+        for (auto it = venues.begin(); it != venues.end(); ++it) {
+            if ((*it)->getId() == id) {
+                venues.erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void show() const {
+        cout << "场馆列表:" << endl;
+        for (const auto& venue : venues) {
+            venue->display();
+        }
+        cout << endl;
+    }
+
+    Venue* findVenueById(const string& id) const {
+        for (const auto& venue : venues) {
+            if (venue->getId() == id) {
+                return venue;
+            }
+        }
+        return nullptr;
+    }
+};
+
+// RecordList(使用记录列表) - 管理使用记录的容器类
+class RecordList {
+private:
+    vector<Record*> records;
+
+public:
+    ~RecordList() {
+        for (auto record : records) {
+            delete record;
+        }
+    }
+
+    void add(Record* record) {
+        records.push_back(record);
+    }
+
+    bool remove(Venue* venue) {
+        for (auto it = records.begin(); it != records.end(); ++it) {
+            if ((*it)->getVenue() == venue) {
+                records.erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void print() const {
+        cout << "当前使用记录:" << endl;
+        for (const auto& record : records) {
+            record->display();
+        }
+        cout << endl;
+    }
+};
+
+// 主函数
+int main() {
+    // 创建场馆列表并添加一些场馆
+    VenueList venueList;
+
+    venueList.add(new Site("S001", "足球场", 7140)); // 场地
+    venueList.add(new Site("S002", "篮球场", 420));
+    venueList.add(new Site("S003", "网球场", 680));
+
+    venueList.add(new Gymnasium("G001", "体育馆", true)); // 运动馆
+    venueList.add(new Gymnasium("G002", "游泳馆", true));
+    venueList.add(new Gymnasium("G003", "羽毛球馆", false));
+
+    // 显示所有场馆
+    venueList.show();
+
+    // 创建使用记录列表
+    RecordList recordList;
+
+    // 获取当前时间作为示例
+    string currentTime = "2025-04-05 14:30";
+
+    // 添加一些使用记录
+    Venue* footballField = venueList.findVenueById("S001");
+    Venue* basketballCourt = venueList.findVenueById("S002");
+    Venue* gym = venueList.findVenueById("G001");
+
+    if (footballField && basketballCourt && gym) {
+        recordList.add(new Record("张三", footballField, currentTime, "13800001111"));
+        recordList.add(new Record("李四", basketballCourt, currentTime, "13900002222"));
+        recordList.add(new Record("王五", gym, "2025-04-05 15:00", "13700003333"));
+    }
+
+    // 打印所有正在使用的场馆记录
+    recordList.print();
+
+    return 0;
+}
