@@ -1,0 +1,166 @@
+#include <iostream>
+using namespace std;
+
+const int MAX_SIZE = 100; // 集合最大容量
+
+class Set {
+private:
+    int data[MAX_SIZE]; // 存储集合元素
+    int count;          // 当前集合中元素的个数
+
+public:
+    // 构造函数
+    Set() : count(0) {}
+
+    // 添加元素
+    void add(int value) {
+        if (contains(value)) return;
+        if (count >= MAX_SIZE) {
+            cout << "Error: Set is full!" << endl;
+            return;
+        }
+        data[count++] = value;
+    }
+
+    // 删除指定元素
+    void remove(int value) {
+        for (int i = 0; i < count; ++i) {
+            if (data[i] == value) {
+                // 找到后向前移动覆盖
+                for (int j = i; j < count - 1; ++j)
+                    data[j] = data[j + 1];
+                --count;
+                return;
+            }
+        }
+    }
+
+    // 判断是否包含某个元素
+    bool contains(int value) const {
+        for (int i = 0; i < count; ++i)
+            if (data[i] == value)
+                return true;
+        return false;
+    }
+
+    // 获取当前元素个数
+    int size() const { return count; }
+
+    // 获取第 index 个元素（用于交集和并集操作）
+    int operator[](int index) const {
+        if (index >= 0 && index < count)
+            return data[index];
+        return 0;
+    }
+
+    // 重载 "+" 运算符：求两个集合的并集
+    Set operator+(const Set& other) const {
+        Set result;
+        // 加入当前集合的所有元素
+        for (int i = 0; i < count; ++i)
+            result.add(data[i]);
+        // 加入另一个集合中的元素
+        for (int i = 0; i < other.count; ++i)
+            result.add(other.data[i]);
+        return result;
+    }
+
+    // 重载 "*" 运算符：求两个集合的交集
+    Set operator*(const Set& other) const {
+        Set result;
+        for (int i = 0; i < count; ++i)
+            if (other.contains(data[i]))
+                result.add(data[i]);
+        return result;
+    }
+
+    //重载运算符=
+    Set& operator=(const Set& other)const
+    {
+        Set result;
+        for (int i = 0; i < count; i++)
+        {
+            if (other.contains(data[i]))
+            {
+                result.add(data[i]);
+            }
+        }
+        return result;
+    }
+    //重载赋值运算符-=
+    Set operator-=(const Set& other)const
+    {
+        Set result;
+        for (int i = 0; i < count; ++i)
+        {
+            if (!other.contains(data[i]))
+                result.add(data[i]);
+            return result;
+        }
+    }
+
+    // 友元函数重载输出运算符 "<<"
+    friend ostream& operator<<(ostream& os, const Set& s);
+
+    // 友元函数重载输入运算符 ">>"
+    friend istream& operator>>(istream& is, Set& s);
+
+    
+};
+
+// 输出集合内容
+ostream& operator<<(ostream& os, const Set& s) {
+    os << "{ ";
+    for (int i = 0; i < s.size(); ++i) {
+        os << s[i];
+        if (i != s.size() - 1)
+            os << ", ";
+    }
+    os << " }";
+    return os;
+}
+
+// 输入集合内容
+istream& operator>>(istream& is, Set& s) {
+    int value;
+    s = Set(); // 清空旧数据
+    cout << "Enter integers (enter non-integer to finish): ";
+    while (is >> value)
+        s.add(value);
+    cin.clear();         // 清除错误标志
+    cin.ignore(100, '\n'); // 忽略非法输入
+    return is;
+}
+
+int main() {
+    Set s1, s2;
+
+    // 输入集合内容
+    cout << "Input set s1:" << endl;
+    cin >> s1;
+
+    cout << "Input set s2:" << endl;
+    cin >> s2;
+
+    // 显示集合
+    cout << "\ns1 = " << s1 << endl;
+    cout << "s2 = " << s2 << endl;
+
+    // 并集``====
+    Set unionSet = s1 + s2;
+    cout << "Union of s1 and s2 = " << unionSet << endl;
+
+    // 交集
+    Set intersectSet = s1 * s2;
+    cout << "Intersection of s1 and s2 = " << intersectSet << endl;
+
+    // 测试添加/删除
+    cout << "\nTesting add/remove:" << endl;
+    s1.add(99); // 添加一个新元素
+    cout << "After adding 99 to s1: " << s1 << endl;
+
+    s1.remove(99); // 删除该元素
+    cout << "After removing 99 from s1: " << s1 << endl;
+
+    return 0;
+}
