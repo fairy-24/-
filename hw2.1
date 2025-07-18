@@ -1,0 +1,174 @@
+#include<iostream>
+#include<cstring>
+using namespace std;
+
+class Date
+{
+private:
+    int year, month, day;
+
+    // 判断是否为闰年
+    static int isleapYear(int y)
+    {
+        if (y % 4 == 0 && y % 100 != 0 || y % 400 == 0)
+            return 1;
+        else
+            return 0;
+    }
+
+    // 检查日期是否有效
+    int isValid(int y, int m, int d)
+    {
+        // 年
+        if (y < 0) return 0;
+        // 月
+        if (m <= 0 || m > 12) return 0;
+        // 天数检查
+        int md = 31;
+        if (m == 4 || m == 6 || m == 9 || m == 11)
+        {
+            md = 30;
+        }
+        else if (m == 2)
+        {
+            if (isleapYear(y))
+                md = 29;
+            else
+                md = 28;
+        }
+        return d > 0 && d <= md;
+    }
+
+public:
+    // 默认构造函数
+    Date()
+    {
+        year = 2024;
+        month = 8;
+        day = 28;
+    }
+
+    // 带参数构造函数
+    Date(int y, int m, int d)
+    {
+        if (isValid(y, m, d))
+        {
+            year = y;
+            month = m;
+            day = d;
+        }
+        else
+        {
+            // 无效日期使用默认值
+            year = 2024;
+            month = 8;
+            day = 28;
+        }
+    }
+
+    // 设置日期函数
+    int set(int y, int m, int d)
+    {
+        if (isValid(y, m, d))
+        {
+            year = y;
+            month = m;
+            day = d;
+            return 1;
+        }
+        return 0;
+    }
+
+    // 输出日期：月/日/年
+    void output() const
+    {
+        cout << month << "/" << day << "/" << year;
+    }
+};
+
+class Student
+{
+private:
+    int id;
+    char name[20];
+    Date roll;
+    static int number;
+
+public:
+    //默认构造函数
+    Student()
+    {
+        strcpy_s(name, "ssdut");  
+        roll = Date(2024, 8, 28);
+        number++;
+        id = 2023000 + number;
+    }
+
+    //构造函数,提供名字和日期
+    Student(const char* n, int y, int m, int d) :roll(y, m, d)
+    {
+        strcpy_s(name, n); 
+        number++;
+        id = 2023000 + number;
+    }
+
+    //构造函数,提供名字和已有Date对象
+    Student(const char* n, Date& d) :roll(d)
+    {
+        strcpy_s(name, n);  
+        number++;
+        id = 2023000 + number;
+    }
+
+    // 构造函数：提供名字
+    Student(const char* n)
+    {
+        strcpy_s(name, n);  
+        number++;
+        id = 2023000 + number;
+    }
+
+    //显示学生信息
+    void show() const
+    {
+        cout << "学号：" << id << endl;
+        cout << "姓名：" << name << endl;
+        cout << "入学日期：";
+        roll.output();  
+        cout << endl;
+    }
+
+    //获取学生总数
+    static int getNum()
+    {
+        return number;
+    }
+};
+
+//初始化静态成员变量
+int Student::number = 0;
+
+int main()
+{
+    Date d(2024, 9, 1);
+
+    // 创建学生数组
+    Student s[] = {
+        Student("S1", 1994, 8, 3),
+        Student("S2", d),
+        Student("S3")
+    };
+
+    const int size = sizeof(s) / sizeof(s[0]);
+
+    // 输出所有学生信息
+    for (int i = 0; i < size; ++i)
+    {
+        s[i].show();
+    }
+
+    // 输出学生总数
+    cout << "当前学生总数：" << Student::getNum() << endl;
+
+    return 0;
+}
