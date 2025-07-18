@@ -1,0 +1,127 @@
+#include<iostream>
+#include<cstring>
+using namespace std;
+
+class EBook
+{
+public:
+    EBook()
+    {
+        name[0] = '\0';
+        author[0] = '\0';
+        count = 0;
+    }
+    EBook(const char* n,const char* a) 
+    {
+        strcpy_s(EBook::name, n);
+        strcpy_s(EBook::author, a);
+        count = 0;
+    }
+    void visit() 
+    {
+        count++;
+        cout << "第" << count << "次访问：" << name << ";作者：" << author << endl;
+    }
+   
+    //重载+运算符
+    EBook operator+(const EBook& other)const
+    {
+        EBook result;
+        strcpy_s(result.name, this->name);  // 复制名称
+        strcpy_s(result.author, this->author);  // 复制作者
+        result.count = this->count + other.count;
+        return result;
+    }
+
+    //重载<
+    bool operator<(const EBook& other)const
+    {
+        return count < other.count;
+    }
+
+public:
+    char name[20];       //名称 
+    char author[20];    //作者
+    int count;           //访问次数 
+};
+
+//template<class T>
+//void swap(T& a, T& b)
+//{
+//    T temp = a;
+//    a = b;
+//    b = Temp;
+//}
+
+class Library 
+{
+private:
+    EBook  book[100];
+    int size;//图书数量
+public:
+    Library() :size(0) {}
+    void addBook(EBook i) 
+    {
+        book[size++] = i;
+    }
+    EBook* getEBook(int i) 
+    {
+        return &book[i];
+    }
+
+    void sort() 
+    {
+        //按照访问次数从小到大排序 （重载<）
+        for (int i = 0; i < size-1; i++)
+        {
+            for (int j = 0; j < size-1-i; j++)
+            {
+                if (book[j+1] < book[j])
+                {
+                    /*swap(book[j], book[j + 1]);?报错*/
+                    EBook temp = book[j + 1];
+                    book[j + 1] = book[j];
+                    book[j] = temp;
+                }
+            }
+        }
+    }
+
+    int sum()
+    {
+        EBook temp;
+        for (int i = 0; i < size; i++)
+            temp = temp + book[i];
+        return temp.count;
+    }
+
+    void show() const
+    {
+        //输出所有EBook	
+        for (int i = 0; i < size; i++)
+        {
+            cout << "书名：" << book[i].name << ";作者：" << book[i].author << ";访问次数:" << book[i].count << endl;
+        }
+    }
+    
+};
+int main() 
+{
+    EBook n1("c++", "yyy");
+    EBook n2("math", "xxx");
+    EBook n3("english", "zzz");
+    Library lib;
+    lib.addBook(n1); lib.addBook(n2); lib.addBook(n3);
+    lib.getEBook(0)->visit();
+    lib.getEBook(0)->visit();
+    lib.getEBook(0)->visit();
+    lib.getEBook(1)->visit();
+    lib.getEBook(1)->visit();
+    lib.getEBook(2)->visit();
+    lib.getEBook(2)->visit();
+    lib.getEBook(2)->visit();
+    lib.getEBook(2)->visit();
+    lib.sort();  //
+    lib.show();//输出所有EBook	
+    cout << "所有电子书访问次数之和：" << lib.sum() << endl;
+}
