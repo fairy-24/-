@@ -1,0 +1,302 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+#include <stdexcept>
+using namespace std;
+
+// 安全数组类模板
+template <typename T>
+class BoundArray {
+private:
+    T* data;                // 指向数据的指针
+    int capacityValue;      // 最大容量
+    int sizeValue;          // 当前大小
+    static const int DEFAULT_CAPACITY = 10;  // 默认最大容量
+
+public:
+    // 默认构造函数
+    BoundArray(int capacity = DEFAULT_CAPACITY)
+        : capacityValue(capacity), sizeValue(0) {
+        if (capacity <= 0) {
+            throw invalid_argument("Capacity must be positive");
+        }
+        data = new T[capacityValue];
+    }
+
+    // 构造函数，从数组创建
+    BoundArray(const T* arr, int length, int capacity = -1)
+        : sizeValue(length) {
+        if (capacity == -1) {
+            capacityValue = length;
+        }
+        else {
+            capacityValue = max(length, capacity);
+        }
+
+        if (capacityValue <= 0 || sizeValue < 0) {
+            throw invalid_argument("Capacity and size must be non-negative");
+        }
+
+        data = new T[capacityValue];
+        for (int i = 0; i < sizeValue; i++) {
+            data[i] = arr[i];
+        }
+    }
+
+    // 拷贝构造函数
+    BoundArray(const BoundArray& other)
+        : capacityValue(other.capacityValue), sizeValue(other.sizeValue) {
+        data = new T[capacityValue];
+        for (int i = 0; i < sizeValue; i++) {
+            data[i] = other.data[i];
+        }
+    }
+
+    // 析构函数
+    ~BoundArray() {
+        delete[] data;
+    }
+
+    // 赋值运算符
+    BoundArray& operator=(const BoundArray& other) {
+        if (this != &other) {
+            delete[] data;
+
+            capacityValue = other.capacityValue;
+            sizeValue = other.sizeValue;
+
+            data = new T[capacityValue];
+            for (int i = 0; i < sizeValue; i++) {
+                data[i] = other.data[i];
+            }
+        }
+        return *this;
+    }
+
+    // 添加元素到末尾
+    bool add(const T& value) {
+        if (sizeValue >= capacityValue) {
+            return false;  // 数组已满
+        }
+        data[sizeValue++] = value;
+        return true;
+    }
+
+    // 在指定位置插入元素
+    bool insert(int index, const T& value) {
+        if (index < 0 || index > sizeValue || sizeValue >= capacityValue) {
+            return false;  // 索引越界或数组已满
+        }
+
+        for (int i = sizeValue; i > index; i--) {
+            data[i] = data[i - 1];
+        }
+        data[index] = value;
+        sizeValue++;
+        return true;
+    }
+
+    // 删除指定位置的元素
+    bool remove(int index) {
+        if (index < 0 || index >= sizeValue) {
+            return false;  // 索引越界
+        }
+
+        for (int i = index; i < sizeValue - 1; i++) {
+            data[i] = data[i + 1];
+        }
+        sizeValue--;
+        return true;
+    }
+
+    // 根据值删除元素（删除第一个匹配项）
+    bool removeByValue(const T& value) {
+        int index = search(value);
+        if (index == -1) {
+            return false;  // 没有找到要删除的元素
+        }
+        return remove(index);
+    }
+
+    // 查找某个元素，返回索引
+    int search(const T& key) const {
+        for (int i = 0; i < sizeValue; i++) {
+            if (data[i] == key) {
+                return i;
+            }
+        }
+        return -1;  // 没有找到
+    }
+
+    // 排序
+    void sort(bool ascending = true) {
+        if (ascending) {
+            std::sort(data, data + sizeValue);
+        }
+        else {
+            std::sort(data, data + sizeValue, greater<T>());
+        }
+    }
+
+    // 查询数组状态
+    int capacity() const { return capacityValue; }
+    int size() const { return sizeValue; }
+    bool isEmpty() const { return sizeValue == 0; }
+    bool isFull() const { return sizeValue == capacityValue; }
+
+    // 访问元素
+    T& operator[](int index) {
+        if (index < 0 || index >= sizeValue) {
+            throw out_of_range("Index out of bounds");
+        }
+        return data[index];
+    }
+
+    const T& operator[](int index) const {
+        if (index < 0 || index >= sizeValue) {
+            throw out_of_range("Index out of bounds");
+        }
+        return data[index];
+    }
+
+    // 打印数组内容
+    void print() const {
+        cout << "[";
+        for (int i = 0; i < sizeValue; i++) {
+            cout << data[i];
+            if (i < sizeValue - 1) {
+                cout << ", ";
+            }
+        }
+        cout << "]" << endl;
+    }
+};
+
+// 测试整数数组
+void testIntArray() {
+    cout << "Testing BoundArray<int>:" << endl;
+    BoundArray<int> arr(5);
+
+    // 添加元素
+    cout << "Adding elements..." << endl;
+    arr.add(3);
+    arr.add(1);
+    arr.add(4);
+    arr.add(1);
+    arr.add(5);
+
+    cout << "Current array: ";
+    arr.print();
+
+    // 尝试添加超出容量的元素
+    if (!arr.add(9)) {
+        cout << "Array is full. Cannot add more elements." << endl;
+    }
+
+    // 查找元素
+    cout << "Searching for element 4: Found at index " << arr.search(4) << endl;
+    cout << "Searching for element 9: Not found (" << arr.search(9) << ")" << endl;
+
+    // 排序
+    cout << "Sorting in ascending order..." << endl;
+    arr.sort(true);
+    arr.print();
+
+    cout << "Sorting in descending order..." << endl;
+    arr.sort(false);
+    arr.print();
+
+    // 删除元素
+    cout << "Removing element at index 2..." << endl;
+    arr.remove(2);
+    arr.print();
+
+    // 插入元素
+    cout << "Inserting element 2 at index 1..." << endl;
+    arr.insert(1, 2);
+    arr.print();
+
+    // 查询数组状态
+    cout << "Capacity: " << arr.capacity() << ", Size: " << arr.size() << endl;
+}
+
+// 测试字符数组
+void testCharArray() {
+    cout << "\nTesting BoundArray<char>:" << endl;
+    BoundArray<char> arr(5);
+
+    // 添加元素
+    cout << "Adding elements..." << endl;
+    arr.add('d');
+    arr.add('b');
+    arr.add('e');
+    arr.add('a');
+    arr.add('c');
+
+    cout << "Current array: ";
+    arr.print();
+
+    // 查找元素
+    cout << "Searching for element 'c': Found at index " << arr.search('c') << endl;
+    cout << "Searching for element 'x': Not found (" << arr.search('x') << ")" << endl;
+
+    // 排序
+    cout << "Sorting in ascending order..." << endl;
+    arr.sort(true);
+    arr.print();
+
+    // 删除元素
+    cout << "Removing element 'c'..." << endl;
+    arr.removeByValue('c');
+    arr.print();
+
+    // 查询数组状态
+    cout << "Capacity: " << arr.capacity() << ", Size: " << arr.size() << endl;
+}
+
+// 测试字符串数组
+void testStringArray() {
+    cout << "\nTesting BoundArray<string>:" << endl;
+    BoundArray<string> arr(5);
+
+    // 添加元素
+    cout << "Adding elements..." << endl;
+    arr.add("banana");
+    arr.add("apple");
+    arr.add("cherry");
+    arr.add("date");
+    arr.add("apricot");
+
+    cout << "Current array: ";
+    arr.print();
+
+    // 查找元素
+    cout << "Searching for 'cherry': Found at index " << arr.search("cherry") << endl;
+    cout << "Searching for 'grape': Not found (" << arr.search("grape") << ")" << endl;
+
+    // 排序
+    cout << "Sorting in ascending order..." << endl;
+    arr.sort(true);
+    arr.print();
+
+    cout << "Sorting in descending order..." << endl;
+    arr.sort(false);
+    arr.print();
+
+    // 删除元素
+    cout << "Removing element 'date'..." << endl;
+    arr.removeByValue("date");
+    arr.print();
+
+    // 查询数组状态
+    cout << "Capacity: " << arr.capacity() << ", Size: " << arr.size() << endl;
+}
+
+// 主函数
+int main() {
+    testIntArray();
+    testCharArray();
+    testStringArray();
+    return 0;
+}
