@@ -1,0 +1,152 @@
+#include<iostream>
+#include<cstring>
+using namespace std;
+
+class String
+{
+	friend ostream& operator<<(ostream& out,const String& a);
+	friend istream& operator>>(istream& is, String& a);
+public:
+	char* str;
+	int length;
+
+public:
+	String()
+	{
+		length = 0;
+		str = new char[1];
+		str[0] = '\0';
+	}
+	String(const char* s)
+	{
+		length = strlen(s);
+		str = new char[length + 1];
+		strcpy_s(str,length+1, s);
+	}
+	String(const String& other)
+	{
+		length = strlen(other.str);
+		str = new char[length + 1];
+		strcpy_s(str, length+1,other.str);
+	}
+	~String()
+	{
+		delete[]str;
+	}
+
+	//+
+	String operator+(String& other)const
+	{
+		String result;
+		result.length = length + other.length;
+		result.str = new char[result.length + 1];
+		strcpy_s(result.str, length + 1, str);
+		strcat_s(result.str, result.length + 1, other.str);
+		return result;
+
+	}
+
+	//=
+	String& operator=(const String& other)
+	{
+		if (this == &other)
+		{
+			return *this;
+		}
+		delete[]str;
+		length = strlen(other.str);
+		str = new char[length + 1];
+		strcpy_s(str,length+1, other.str);
+		return *this;
+
+	}
+
+	//<
+	bool operator<(const String& other)const
+	{
+		return strcmp(str, other.str) < 0;
+	}
+	
+	//()
+	String operator()(int start, int len)const
+	{
+		if (start < 0 || start >= length || len <= 0)
+			return String();
+
+		int ac_len;
+		if (start + len <= length)
+		{
+			ac_len = len;
+		}
+		else
+		{
+			ac_len = length - start;
+		}
+
+		char* sub = new char[ac_len + 1];
+		strncpy_s(sub,ac_len+1, str + start,ac_len); //将原字符串从 start 开始复制 ac_len 个字符到新数组 sub 中
+		sub[ac_len] = '\0';
+
+		String result(sub);
+		delete[]sub;
+		return result;
+	}
+};
+
+//<<
+ostream& operator<<(ostream& out, const String& a)
+{
+	out << a.str;
+	return out;
+}
+
+//>>
+istream& operator>>(istream& is, String& a)
+{
+	char ch[1000];//临时存储从输入流中读取的内容
+	is >> ch;
+
+	delete[] a.str;
+
+	a.length = strlen(ch);
+	a.str = new char[a.length + 1];
+	strcpy_s(a.str,a.length+1, ch);
+
+	return is;
+
+}
+
+int main()
+{
+	String s1;
+	String s2("hello ");
+	String s3("fairy");
+
+	//<<
+	cout << "输出s2:" << s2 << endl;
+
+	//+
+	s1 = s2 + s3;
+	cout << "s1=" << s1 << endl;
+
+	//<
+	if (s1 < s2)
+	{
+		cout << s1 << "<" << s2 << endl;
+	}
+	else
+	{
+		cout << s1 << ">=" << s2 << endl;
+	}
+
+	//>>
+	cout << "输入s3:" << endl;
+	cin >> s3;
+	cout << "s3=" << s3<< endl;
+
+	//()
+	String sub = s1(2, 4);
+	cout << "s1(2,4)=" << sub << endl;
+
+	return 0;
+}
